@@ -3,19 +3,25 @@ package com.gharibyan.razmik.instagramdataloader.presentation;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.gharibyan.razmik.instagramdataloader.R;
+import com.gharibyan.razmik.instagramdataloader.editor.ImageURLProcessing;
 import com.gharibyan.razmik.instagramdataloader.repository.api.InstagramPlaceHolderApi;
+import com.gharibyan.razmik.instagramdataloader.repository.model.personal.ObjectResponse;
 import com.gharibyan.razmik.instagramdataloader.repository.model.UserInfo;
 import com.gharibyan.razmik.instagramdataloader.repository.model.UserToken;
 import com.gharibyan.razmik.instagramdataloader.repository.model.UserTokenLong;
+
+import java.util.concurrent.ExecutionException;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -27,6 +33,8 @@ public class MainActivity extends AppCompatActivity {
 
     private InstagramPlaceHolderApi instagramPlaceHolderApi;
 
+    private ImageURLProcessing imageURLProcessing;
+
     private final String TAG = getClass().toString();
 
     private final String authorizeUrl = "https://api.instagram.com/oauth/authorize?app_id=460485674626498&redirect_uri=https://github.com/R43M1K&scope=user_profile,user_media&response_type=code";
@@ -34,14 +42,11 @@ public class MainActivity extends AppCompatActivity {
     private final String redirectBeforeCode = "R43M1K?code=";
     private final String redirectAfterCode = "#_";
 
-    private final String pictureUrlHD = "profile_pic_url_hd\":\"";
-    private final String followersCount = "edge_followed_by\":{\"count\":";
-
-
     private String code;
 
     private WebView webView;
     private TextView textView;
+    private ImageView imageView;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -51,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
 
         webView = findViewById(R.id.web_view);
         textView = findViewById(R.id.text_view);
+        imageView = findViewById(R.id.image_view);
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl("https://api.instagram.com/")
@@ -58,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
                 .build();
 
         instagramPlaceHolderApi = retrofit.create(InstagramPlaceHolderApi.class);
+        imageURLProcessing = new ImageURLProcessing();
 
         WebSettings webSettings = webView.getSettings();
         webSettings.setJavaScriptEnabled(true);
@@ -171,33 +178,38 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void getUserPersonal(String username) {
-        Call<String> call = instagramPlaceHolderApi.getUserPersonal(username,1);
-        call.enqueue(new Callback<String>() {
+        Call<ObjectResponse> call = instagramPlaceHolderApi.getUserPersonal(username,1);
+        call.enqueue(new Callback<ObjectResponse>() {
             @Override
-            public void onResponse(Call<String> call, Response<String> response) {
+            public void onResponse(Call<ObjectResponse> call, Response<ObjectResponse> response) {
                 if(!response.isSuccessful()) {
                     Log.d(TAG, response.message());
                     return;
                 }
 
-                String result = response.body();
-                if(result != null) {
-                    int indexStartPictureUrlHD = result.indexOf(pictureUrlHD) + pictureUrlHD.length();
-                    int indexStartFollowersCount = result.indexOf(followersCount) + followersCount.length();
-                    int indexFinishPictureUrlHD = result.indexOf("\"", indexStartPictureUrlHD);
-                    int indexFinishFollowersCount = result.indexOf("}", indexStartFollowersCount);
-                    String pictureUrlHD = result.substring(indexStartPictureUrlHD, indexFinishPictureUrlHD);
-                    String followersCount = result.substring(indexStartFollowersCount, indexFinishFollowersCount);
+                ObjectResponse objectResponse = response.body();
 
-                    String content = ""
-                            + "Picture Url: " + pictureUrlHD + "\n"
-                            + "Followers Count: " + followersCount;
-                    Log.d(TAG, content);
+                String profilePicUrlHD = objectResponse.getGraphql().getUser().getProfilePicUrlHD();
+                Long followersCount = objectResponse.getGraphql().getUser().getEdgeFollowedBy().getFollowersCount();
+
+                String content = ""
+                        + "Profile Picture URL: " + profilePicUrlHD + "\n"
+                        + "Followers Count: " + followersCount;
+
+                textView.append("Followers Count: " + followersCount);
+                try {
+                    Bitmap bitmap = imageURLProcessing.execute(profilePicUrlHD).get();
+                    imageView.setImageBitmap(bitmap);
+                } catch (ExecutionException e) {
+                    e.printStackTrace();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
+                Log.d(TAG, content);
             }
 
             @Override
-            public void onFailure(Call<String> call, Throwable t) {
+            public void onFailure(Call<ObjectResponse> call, Throwable t) {
                 Log.d(TAG, t.getMessage());
             }
         });

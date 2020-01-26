@@ -1,5 +1,6 @@
 package com.gharibyan.razmik.instagramdataloader.repository.api;
 
+import com.gharibyan.razmik.instagramdataloader.repository.model.personal.ObjectResponse;
 import com.gharibyan.razmik.instagramdataloader.repository.model.UserInfo;
 import com.gharibyan.razmik.instagramdataloader.repository.model.UserToken;
 import com.gharibyan.razmik.instagramdataloader.repository.model.UserTokenLong;
@@ -39,7 +40,7 @@ public interface InstagramPlaceHolderApi {
     );
 
     @GET("https://www.instagram.com/{username}")
-    Call<String> getUserPersonal(
+    Call<ObjectResponse> getUserPersonal(
             @Path("username") String username,
             @Query("__a") Integer a
     );
