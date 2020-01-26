@@ -167,7 +167,7 @@ public class MainActivity extends AppCompatActivity {
                 getUserPersonal(userInfo.getUsername());
 
                 webView.setVisibility(View.GONE);
-                textView.setText(userInfo.getUsername());
+                textView.setText("Username: " + userInfo.getUsername() + "\n");
             }
 
             @Override
@@ -191,12 +191,16 @@ public class MainActivity extends AppCompatActivity {
 
                 String profilePicUrlHD = objectResponse.getGraphql().getUser().getProfilePicUrlHD();
                 Long followersCount = objectResponse.getGraphql().getUser().getEdgeFollowedBy().getFollowersCount();
+                Boolean isPrivate = objectResponse.getGraphql().getUser().getPrivate();
+                Boolean isVerified = objectResponse.getGraphql().getUser().getVerified();
 
                 String content = ""
                         + "Profile Picture URL: " + profilePicUrlHD + "\n"
                         + "Followers Count: " + followersCount;
 
-                textView.append("Followers Count: " + followersCount);
+                textView.append("Followers Count: " + followersCount + "\n"
+                        + "Is Private: " + isPrivate + "\n"
+                        + "Is Verified: " + isVerified);
                 try {
                     Bitmap bitmap = imageURLProcessing.execute(profilePicUrlHD).get();
                     imageView.setImageBitmap(bitmap);
